@@ -1,0 +1,16 @@
+[package]
+name = "salary-cheer"
+version = "0.2.0"
+description = "薪情不错 — 让每一秒的努力都看得见"
+authors = ["Salary Cheer"]
+edition = "2021"
+rust-version = "1.90"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon", "image-png"] }
+tauri-plugin-dialog = "2"
+tauri-plugin-notification = "2"
+tauri-plugin-single-instance = "2"

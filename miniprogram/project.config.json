@@ -1,0 +1,23 @@
+{
+  "appid": "wx7f4c9d015e66bf92",
+  "projectname": "薪情不错",
+  "description": "实时收入计时、排班日历与下班倒计时",
+  "compileType": "miniprogram",
+  "miniprogramRoot": "./",
+  "setting": {
+    "es6": true,
+    "enhance": true,
+    "postcss": true,
+    "minified": true,
+    "urlCheck": true,
+    "packNpmManually": false
+  },
+  "packOptions": {
+    "ignore": [
+      {
+        "type": "file",
+        "value": "README.md"
+      }
+    ]
+  }
+}

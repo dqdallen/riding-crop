@@ -1,0 +1,1 @@
+{"$schema":"../gen/schemas/desktop-schema.json","identifier":"main-and-widget","description":"Local application windows; no remote pages or filesystem grants","windows":["main","widget"],"permissions":["core:default","core:window:allow-start-dragging"]}

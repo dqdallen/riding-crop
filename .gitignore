@@ -1,0 +1,7 @@
+node_modules/
+src-tauri/target/
+artifacts/
+*.log
+.DS_Store
+project.private.config.json
+src-tauri/gen/

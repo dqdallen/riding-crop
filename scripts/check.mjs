@@ -1,0 +1,9 @@
+import {readFile,readdir,access} from 'node:fs/promises';import {spawnSync} from 'node:child_process';import path from 'node:path';import assert from 'node:assert/strict';
+const walk=async dir=>{let files=[];for(const e of await readdir(dir,{withFileTypes:true})){const f=path.join(dir,e.name);if(e.isDirectory())files.push(...await walk(f));else files.push(f);}return files;};
+const files=[...await walk('dist'),...await walk('miniprogram'),...await walk('shared')];
+for(const f of files){if(/\.(js|mjs|cjs)$/.test(f)){const r=spawnSync(process.execPath,['--check',f],{encoding:'utf8'});assert.equal(r.status,0,`${f}: ${r.stderr}`);}if(f.endsWith('.json'))JSON.parse(await readFile(f,'utf8'));}
+const core=await readFile('shared/core.cjs','utf8');assert.equal(await readFile('dist/core.js','utf8'),core);assert.equal(await readFile('miniprogram/utils/core.js','utf8'),core);
+const app=JSON.parse(await readFile('miniprogram/app.json','utf8'));for(const p of app.pages)for(const ext of ['js','json','wxml','wxss'])await access(`miniprogram/${p}.${ext}`);
+const config=JSON.parse(await readFile('src-tauri/tauri.conf.json','utf8'));for(const p of config.bundle.icon)await access('src-tauri/'+p);const mini=JSON.parse(await readFile('miniprogram/project.config.json','utf8'));assert.match(mini.appid,/^wx[0-9a-f]{16}$/);
+for(const f of (await walk('miniprogram')).filter(f=>f.endsWith('.wxml'))){const template=await readFile(f,'utf8'),controller=await readFile(f.replace(/\.wxml$/,'.js'),'utf8');for(const match of template.matchAll(/(?:bind(?:tap|input|change)|catchtap)="([A-Za-z]\w*)"/g)){assert.match(controller,new RegExp('\\b'+match[1]+'\\s*\\('),`${f}: missing handler ${match[1]}`);}}
+console.log(`Checked ${files.length} application files, all page routes, event handlers, icons and shared engine parity.`);

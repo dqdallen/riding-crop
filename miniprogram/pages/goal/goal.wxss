@@ -1,0 +1,1 @@
+.presets{display:grid;grid-template-columns:1fr 1fr;gap:20rpx;margin:30rpx 0}.presets button{background:#eef2e5;border:1rpx solid #e3ead8;border-radius:22rpx;padding:27rpx 16rpx;display:flex;flex-direction:column;align-items:center;gap:13rpx;font-size:23rpx}.icon{font-size:50rpx}.card>.field-label:first-child{margin-top:0}.save{margin-top:36rpx}
