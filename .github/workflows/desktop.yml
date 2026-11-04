@@ -1,0 +1,95 @@
+name: Build Windows and Mac apps
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      source_sha: ${{ steps.commit.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Import application source on the first run
+        shell: python
+        run: |
+          from pathlib import Path
+          import zipfile
+          root = Path.cwd().resolve()
+          if (root / 'shared/core.cjs').is_file():
+              print('Using tracked application source; archive import is not needed.')
+          else:
+              with zipfile.ZipFile('source-v0.2.0.zip') as archive:
+                  for info in archive.infolist():
+                      parts = Path(info.filename).parts
+                      if not parts or parts[0] != 'salary-cheer' or info.is_dir():
+                          continue
+                      rel = Path(*parts[1:])
+                      if not rel.parts or rel.parts[0] in ('.github', '.git', '.openai', 'node_modules'):
+                          continue
+                      target = (root / rel).resolve()
+                      if not target.is_relative_to(root):
+                          raise RuntimeError('Unsafe archive entry')
+                      target.parent.mkdir(parents=True, exist_ok=True)
+                      target.write_bytes(archive.read(info))
+              print('Application source imported.')
+      - run: npm ci
+      - run: npm run verify
+      - name: Save verified source to repository
+        id: commit
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .
+          if ! git diff --cached --quiet; then
+            git commit -m 'Import verified four-platform application source'
+            git push origin HEAD:main
+          fi
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: salary-cheer-wechat-project
+          path: miniprogram/
+  desktop:
+    needs: prepare
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            name: windows-x64
+            args: --bundles nsis
+          - os: macos-latest
+            name: mac-universal
+            args: --target universal-apple-darwin --bundles app,dmg
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare.outputs.source_sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.os == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || 'x86_64-pc-windows-msvc' }}
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+      - run: npm ci
+      - run: npm run build
+      - uses: tauri-apps/tauri-action@v1
+        with:
+          args: ${{ matrix.args }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: salary-cheer-${{ matrix.name }}
+          if-no-files-found: error
+          path: |
+            src-tauri/target/release/bundle/nsis/*-setup.exe
+            src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg
